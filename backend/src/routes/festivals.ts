@@ -191,10 +191,16 @@ router.delete('/:id', authenticateToken, requireMinimumRole('admin'), async (req
     const { force } = req.query;
     const db = getDatabase();
 
+    // Check if festival exists first
+    const festival = await db.get('SELECT id FROM festivals WHERE id = ?', [id]);
+    if (!festival) {
+      return res.status(404).json({ error: 'Festival not found' });
+    }
+
     // Check if festival has associated data
-    const associatedData = await db.all(`
+    const associatedData = await db.get(`
       SELECT 
-        (SELECT COUNT(*) FROM venues WHERE festival_id = ?) as venue_count,
+        (SELECT COUNT(*) FROM stages_areas WHERE event_id = ?) as stage_count,
         (SELECT COUNT(*) FROM performances WHERE festival_id = ?) as performance_count,
         (SELECT COUNT(*) FROM artists WHERE festival_id = ?) as artist_count,
         (SELECT COUNT(*) FROM volunteers WHERE festival_id = ?) as volunteer_count,
@@ -203,26 +209,26 @@ router.delete('/:id', authenticateToken, requireMinimumRole('admin'), async (req
         (SELECT COUNT(*) FROM documents WHERE festival_id = ?) as document_count
     `, [id, id, id, id, id, id, id]);
 
-    const totalAssociatedRecords = (associatedData[0]?.venue_count || 0) + 
-                                  (associatedData[0]?.performance_count || 0) + 
-                                  (associatedData[0]?.artist_count || 0) +
-                                  (associatedData[0]?.volunteer_count || 0) +
-                                  (associatedData[0]?.vendor_count || 0) +
-                                  (associatedData[0]?.budget_count || 0) +
-                                  (associatedData[0]?.document_count || 0);
+    const totalAssociatedRecords = (associatedData?.stage_count || 0) + 
+                                  (associatedData?.performance_count || 0) + 
+                                  (associatedData?.artist_count || 0) +
+                                  (associatedData?.volunteer_count || 0) +
+                                  (associatedData?.vendor_count || 0) +
+                                  (associatedData?.budget_count || 0) +
+                                  (associatedData?.document_count || 0);
 
     if (totalAssociatedRecords > 0 && force !== 'true') {
       return res.status(400).json({ 
         error: 'Cannot delete festival with associated data',
         canForceDelete: true,
         details: {
-          venues: associatedData[0]?.venue_count || 0,
-          performances: associatedData[0]?.performance_count || 0,
-          artists: associatedData[0]?.artist_count || 0,
-          volunteers: associatedData[0]?.volunteer_count || 0,
-          vendors: associatedData[0]?.vendor_count || 0,
-          budget_items: associatedData[0]?.budget_count || 0,
-          documents: associatedData[0]?.document_count || 0
+          stages: associatedData?.stage_count || 0,
+          performances: associatedData?.performance_count || 0,
+          artists: associatedData?.artist_count || 0,
+          volunteers: associatedData?.volunteer_count || 0,
+          vendors: associatedData?.vendor_count || 0,
+          budget_items: associatedData?.budget_count || 0,
+          documents: associatedData?.document_count || 0
         }
       });
     }
@@ -235,7 +241,7 @@ router.delete('/:id', authenticateToken, requireMinimumRole('admin'), async (req
       await db.run('DELETE FROM vendors WHERE festival_id = ?', [id]);
       await db.run('DELETE FROM volunteers WHERE festival_id = ?', [id]);
       await db.run('DELETE FROM artists WHERE festival_id = ?', [id]);
-      await db.run('DELETE FROM venues WHERE festival_id = ?', [id]);
+      await db.run('DELETE FROM stages_areas WHERE event_id = ?', [id]);
     }
 
     const result = await db.run(
@@ -250,6 +256,12 @@ router.delete('/:id', authenticateToken, requireMinimumRole('admin'), async (req
     res.json({ message: 'Festival deleted successfully' });
   } catch (error) {
     console.error('Delete festival error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      params: req.params,
+      query: req.query
+    });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -262,7 +274,7 @@ router.get('/:id/stats', authenticateToken, async (req: AuthenticatedRequest, re
 
     const stats = await db.get(`
       SELECT 
-        (SELECT COUNT(*) FROM venues WHERE festival_id = ? AND is_active = TRUE) as venue_count,
+        (SELECT COUNT(*) FROM stages_areas WHERE event_id = ? AND is_active = TRUE) as stage_count,
         (SELECT COUNT(*) FROM performances WHERE festival_id = ?) as performance_count,
         (SELECT COUNT(*) FROM artists WHERE festival_id = ?) as artist_count,
         (SELECT COUNT(*) FROM volunteers WHERE festival_id = ?) as volunteer_count,
@@ -273,7 +285,7 @@ router.get('/:id/stats', authenticateToken, async (req: AuthenticatedRequest, re
 
     res.json({
       festival_id: parseInt(id),
-      venues: stats.venue_count || 0,
+      stages: stats.stage_count || 0,
       performances: stats.performance_count || 0,
       artists: stats.artist_count || 0,
       volunteers: stats.volunteer_count || 0,
@@ -322,14 +334,14 @@ router.post('/:id/clone', authenticateToken, requireMinimumRole('admin'), async 
 
     const newFestivalId = result.lastID;
 
-    // Clone venues (always clone venues as they're needed for the schedule)
+    // Clone stages/areas (always clone these as they're needed for the schedule)
     if (cloneOptions.venues !== false) {
-      const venues = await db.all('SELECT * FROM venues WHERE festival_id = ?', [id]);
-      for (const venue of venues) {
+      const stages = await db.all('SELECT * FROM stages_areas WHERE event_id = ?', [id]);
+      for (const stage of stages) {
         await db.run(`
-          INSERT INTO venues (festival_id, name, type, setup_time, breakdown_time)
-          VALUES (?, ?, ?, ?, ?)
-        `, [newFestivalId, venue.name, venue.type, venue.setup_time, venue.breakdown_time]);
+          INSERT INTO stages_areas (event_id, name, type, setup_time, breakdown_time, sort_order)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [newFestivalId, stage.name, stage.type, stage.setup_time, stage.breakdown_time, stage.sort_order]);
       }
     }
 
