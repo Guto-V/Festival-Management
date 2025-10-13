@@ -18,6 +18,7 @@ import budgetRoutes from './routes/budget';
 import festivalRoutes from './routes/festivals';
 import todoRoutes from './routes/todos';
 import ticketingRoutes from './routes/ticketing';
+import contractRoutes from './routes/contracts';
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/budget', budgetRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/ticketing', ticketingRoutes);
+app.use('/api/contracts', contractRoutes);
 
 // Test endpoint
 app.get('/api/volunteer-registration-test', (req, res) => {

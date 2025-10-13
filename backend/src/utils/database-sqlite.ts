@@ -327,6 +327,63 @@ const createTables = async () => {
     )
   `);
 
+  // Contract Templates table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS contract_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      festival_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      content TEXT NOT NULL,
+      is_default BOOLEAN DEFAULT FALSE,
+      created_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (festival_id) REFERENCES festivals(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    )
+  `);
+
+  // Artist Contracts table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS artist_contracts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      artist_id INTEGER NOT NULL,
+      template_id INTEGER NOT NULL,
+      custom_content TEXT,
+      secure_token TEXT UNIQUE NOT NULL,
+      status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'sent', 'viewed', 'signed', 'expired')),
+      deadline DATE,
+      sent_at DATETIME,
+      viewed_at DATETIME,
+      signed_at DATETIME,
+      signature_data TEXT,
+      pdf_path TEXT,
+      version INTEGER DEFAULT 1,
+      created_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE,
+      FOREIGN KEY (template_id) REFERENCES contract_templates(id),
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    )
+  `);
+
+  // Contract Versions table (track contract changes)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS contract_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      contract_id INTEGER NOT NULL,
+      version_number INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      changes_summary TEXT,
+      created_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (contract_id) REFERENCES artist_contracts(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    )
+  `);
+
   // Insert default data if it doesn't exist
   await insertDefaultData();
 };
@@ -362,6 +419,51 @@ const insertDefaultData = async () => {
     await db.run('INSERT INTO stages_areas (event_id, name, type, sort_order) VALUES (?, ?, ?, ?)', [1, 'Llwyfan Foel Drigarn', 'stage', 1]);
     await db.run('INSERT INTO stages_areas (event_id, name, type, sort_order) VALUES (?, ?, ?, ?)', [1, 'Llwyfan y Frenni', 'stage', 2]);
     await db.run('INSERT INTO stages_areas (event_id, name, type, sort_order) VALUES (?, ?, ?, ?)', [1, 'Ardal Blant', 'area', 3]);
+
+    // Create default contract template
+    const defaultContractContent = `PERFORMANCE AGREEMENT
+
+Festival: {{festival_name}}
+Artist/Performer: {{artist_name}}
+Contact: {{artist_contact}}
+Performance Date: {{performance_date}}
+Performance Time: {{performance_time}}
+Venue/Stage: {{performance_venue}}
+
+TERMS AND CONDITIONS:
+
+1. PERFORMANCE DETAILS
+The Artist agrees to perform at the above festival on the specified date and time. The performance duration will be as agreed in schedule communications.
+
+2. PAYMENT
+Fee: {{artist_fee}}
+Payment terms: To be agreed upon contract signing.
+
+3. TECHNICAL REQUIREMENTS
+The Artist's technical requirements are as follows:
+{{technical_requirements}}
+
+4. RIDER REQUIREMENTS  
+The Artist's rider requirements are as follows:
+{{rider_requirements}}
+
+5. CANCELLATION
+Both parties may cancel this agreement with reasonable notice. In case of cancellation by the Festival, the Artist will be compensated according to the agreed terms.
+
+6. LIABILITY
+The Festival will provide public liability insurance. The Artist is responsible for their own equipment and personal insurance.
+
+7. AGREEMENT
+By signing below, both parties agree to the terms and conditions set forth in this Performance Agreement.
+
+Date: {{current_date}}
+
+This agreement is subject to the terms and conditions outlined above and any additional agreements made in writing.`;
+
+    await db.run(
+      'INSERT INTO contract_templates (festival_id, name, description, content, is_default, created_by) VALUES (?, ?, ?, ?, ?, ?)',
+      [1, 'Standard Performance Agreement', 'Default performance contract template for all artists', defaultContractContent, true, 1]
+    );
 
     console.log('✅ Default data inserted');
   }
