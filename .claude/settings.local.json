@@ -41,7 +41,11 @@
       "Bash(BROWSER=none npm start)",
       "Bash(npm ls:*)",
       "Bash(cat:*)",
-      "Bash(GENERATE_SOURCEMAP=false npm start)"
+      "Bash(GENERATE_SOURCEMAP=false npm start)",
+      "Bash(ngrok version)",
+      "WebFetch(domain:debrah-ravening-margorie.ngrok-free.dev)",
+      "Bash(./shutdown_ngrok.sh:*)",
+      "Bash(kill:*)"
     ],
     "deny": []
   }

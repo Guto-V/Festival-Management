@@ -4,6 +4,59 @@ import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../
 
 const router = express.Router();
 
+// Test endpoint
+router.get('/test', (req, res) => {
+  res.json({ message: 'Volunteers route is working' });
+});
+
+// Public volunteer registration endpoint (no auth required)
+router.post('/register', async (req, res) => {
+  try {
+    const { 
+      firstName, lastName, email, phone, address, emergencyContact, emergencyPhone,
+      experience, availability, inductionCompleted, festival_id
+    } = req.body;
+
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ error: 'First name, last name, and email are required' });
+    }
+
+    if (!festival_id) {
+      return res.status(400).json({ error: 'Festival ID is required' });
+    }
+
+    const db = getDatabase();
+    
+    // Map frontend fields to database fields
+    const result = await db.run(`
+      INSERT INTO volunteers (
+        festival_id, first_name, last_name, email, phone, skills,
+        emergency_contact_name, emergency_contact_phone, 
+        volunteer_status, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      festival_id, 
+      firstName, 
+      lastName, 
+      email, 
+      phone || '',
+      `Experience: ${experience || 'Not provided'}\nAvailability: ${availability || 'Not provided'}\nAddress: ${address || 'Not provided'}`,
+      emergencyContact || '',
+      emergencyPhone || '',
+      'applied', // Default status for new applications
+      `Induction completed: ${inductionCompleted ? 'Yes' : 'No'}\nSubmitted via public registration form`
+    ]);
+
+    res.status(201).json({ 
+      message: 'Volunteer application submitted successfully',
+      applicationId: result.lastID 
+    });
+  } catch (error) {
+    console.error('Volunteer registration error:', error);
+    res.status(500).json({ error: 'Failed to submit application. Please try again.' });
+  }
+});
+
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id } = req.query;
