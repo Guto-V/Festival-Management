@@ -139,3 +139,12 @@
 - **Status**: Schedule popup will now show proper stage names
 
 
+
+
+### 2025-10-14 13:09:57 - Creating Version 1.8.3
+- **User Request**: Save current state as v1.8.3 on main branch
+- **Includes**: Complete system with frontend integration + stage name fix
+- **Note**: Will always include frontend in future versions (no more submodule issues)
+- **Status**: Creating comprehensive v1.8.3 commit
+
+
