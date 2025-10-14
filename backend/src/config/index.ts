@@ -12,6 +12,7 @@ export const config = {
   database: {
     url: process.env.DATABASE_URL || 'sqlite:./festival.db',
     type: process.env.DATABASE_URL ? 'postgresql' : 'sqlite',
+    path: process.env.DATABASE_PATH || './festival.db',
     maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS || '10', 10),
   },
   

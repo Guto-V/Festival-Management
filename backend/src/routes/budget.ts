@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id } = req.query;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     let query = `
       SELECT id, festival_id, name, category, type, amount, planned_amount, 
@@ -47,7 +47,7 @@ router.post('/', authenticateToken, requireMinimumRole('coordinator'), async (re
       return res.status(400).json({ error: 'Type must be either "income" or "expense"' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     const result = await db.run(`
       INSERT INTO budget_items (
@@ -77,7 +77,7 @@ router.post('/', authenticateToken, requireMinimumRole('coordinator'), async (re
 router.get('/summary/:festival_id', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const summary = await db.get(`
       SELECT 
@@ -109,7 +109,7 @@ router.get('/summary/:festival_id', authenticateToken, async (req: Authenticated
 router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     const budgetItem = await db.get(`
       SELECT id, festival_id, name, category, type, amount, planned_amount, 
@@ -138,7 +138,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('coordinator'), async (
       payment_status, due_date, paid_date, description
     } = req.body;
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if budget item exists
     const existingItem = await db.get('SELECT id FROM budget_items WHERE id = ?', [id]);
@@ -185,7 +185,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('coordinator'), async (
 router.delete('/:id', authenticateToken, requireMinimumRole('manager'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const result = await db.run('DELETE FROM budget_items WHERE id = ?', [id]);
 
@@ -204,7 +204,7 @@ router.delete('/:id', authenticateToken, requireMinimumRole('manager'), async (r
 router.get('/categories/:festival_id', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     // Get artists with fees
     const artists = await db.all(`

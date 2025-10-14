@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -7,7 +7,7 @@ const router = express.Router();
 // Get all festivals
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const festivals = await db.all(`
       SELECT f.id, f.name, f.year, f.start_date, f.end_date, f.venue_id, f.location, 
              f.description, f.status, f.budget_total, f.budget_allocated, 
@@ -29,7 +29,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
 router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     const festival = await db.get(`
       SELECT f.id, f.name, f.year, f.start_date, f.end_date, f.venue_id, f.location, 
@@ -82,7 +82,7 @@ router.post('/', authenticateToken, requireMinimumRole('admin'), async (req: Aut
       return res.status(400).json({ error: 'End date must be after start date' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if festival with same name and year already exists
     const existingFestival = await db.get(
@@ -126,7 +126,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('admin'), async (req: A
       event_start_time, event_end_time, use_custom_daily_times, daily_times
     } = req.body;
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if festival exists
     const festival = await db.get(
@@ -189,7 +189,7 @@ router.delete('/:id', authenticateToken, requireMinimumRole('admin'), async (req
   try {
     const { id } = req.params;
     const { force } = req.query;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     // Check if festival exists first
     const festival = await db.get('SELECT id FROM festivals WHERE id = ?', [id]);
@@ -270,7 +270,7 @@ router.delete('/:id', authenticateToken, requireMinimumRole('admin'), async (req
 router.get('/:id/stats', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const stats = await db.get(`
       SELECT 
@@ -313,7 +313,7 @@ router.post('/:id/clone', authenticateToken, requireMinimumRole('admin'), async 
       return res.status(400).json({ error: 'Name, year, start date, and end date are required for cloning' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Get original festival
     const originalFestival = await db.get(

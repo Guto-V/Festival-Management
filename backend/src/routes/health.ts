@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { config } from '../config';
 // Logger temporarily disabled
 import fs from 'fs';
@@ -116,7 +116,7 @@ async function checkDatabase(): Promise<HealthCheck> {
   const start = Date.now();
   
   try {
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     await db.get('SELECT 1 as health_check');
     
     // Check if main tables exist

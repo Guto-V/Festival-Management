@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -26,7 +26,7 @@ const validateDuration = (minutes: number): number => {
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id = 1, performance_date, stage_area_id } = req.query as { festival_id?: string; performance_date?: string; stage_area_id?: string };
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     let query = `
       SELECT 
@@ -87,7 +87,7 @@ router.get('/grid/:date', authenticateToken, async (req: AuthenticatedRequest, r
   try {
     const { date } = req.params;
     const { festival_id, event_id } = req.query as { festival_id?: string; event_id?: string };
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     if (!festival_id) {
       return res.status(400).json({ error: 'festival_id is required' });
@@ -180,7 +180,7 @@ router.post('/performance', authenticateToken, requireMinimumRole('coordinator')
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Validate duration (minimum 5 minutes, no forced rounding)
     const validatedDuration = validateDuration(duration_minutes);
@@ -253,7 +253,7 @@ router.put('/performance/:id', authenticateToken, requireMinimumRole('coordinato
       setup_time, soundcheck_time, soundcheck_duration, notes, status
     } = req.body;
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if performance exists
     const performance = await db.get(
@@ -343,7 +343,7 @@ router.put('/performance/:id', authenticateToken, requireMinimumRole('coordinato
 router.delete('/performance/:id', authenticateToken, requireMinimumRole('coordinator'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const result = await db.run(
       'DELETE FROM performances WHERE id = ?',

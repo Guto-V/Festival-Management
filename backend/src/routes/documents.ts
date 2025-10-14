@@ -1,12 +1,12 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
 
 router.get('/templates', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const rows = await db.all(`
       SELECT * FROM document_templates WHERE is_active = TRUE ORDER BY name ASC
     `);
@@ -19,7 +19,7 @@ router.get('/templates', authenticateToken, async (req: AuthenticatedRequest, re
 
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const rows = await db.all(`
       SELECT d.*, dt.name as template_name 
       FROM documents d 

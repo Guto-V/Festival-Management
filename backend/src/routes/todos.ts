@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -19,7 +19,7 @@ interface TodoItem {
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id = 1 } = req.query;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const todos: TodoItem[] = [];
 
     // 1. Overdue payments

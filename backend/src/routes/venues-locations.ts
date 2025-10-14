@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -7,7 +7,7 @@ const router = express.Router();
 // Get all venue locations
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const rows = await db.all(`
       SELECT 
@@ -30,7 +30,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
 router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const venue = await db.get(`
       SELECT 
@@ -73,7 +73,7 @@ router.post('/', authenticateToken, requireMinimumRole('manager'), async (req: A
       return res.status(400).json({ error: 'Name is required' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if active venue with same name already exists (case insensitive)
     const existingVenue = await db.get(
@@ -132,7 +132,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('manager'), async (req:
       name, address, city, postcode, country, capacity, description, 
       facilities, contact_name, contact_email, contact_phone, is_active 
     } = req.body;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     // Check if venue exists
     const venue = await db.get(
@@ -185,7 +185,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('manager'), async (req:
 router.delete('/:id', authenticateToken, requireMinimumRole('manager'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     // Check if venue has associated events
     const events = await db.all(

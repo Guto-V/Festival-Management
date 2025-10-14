@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { event_id = 1 } = req.query; // Default to event 1 for now
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const rows = await db.all(`
       SELECT 
@@ -34,7 +34,7 @@ router.put('/reorder', authenticateToken, requireMinimumRole('coordinator'), asy
       return res.status(400).json({ error: 'stageAreaOrders must be an array' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Update all stage/area orders in a transaction-like manner
     for (const stageAreaOrder of stageAreaOrders) {
@@ -55,7 +55,7 @@ router.put('/reorder', authenticateToken, requireMinimumRole('coordinator'), asy
 router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const stageArea = await db.get(`
       SELECT 
@@ -90,7 +90,7 @@ router.post('/', authenticateToken, requireMinimumRole('manager'), async (req: A
       return res.status(400).json({ error: 'Name and type are required' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if stage/area with same name already exists for this event
     const existingStageArea = await db.get(
@@ -136,7 +136,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('manager'), async (req:
   try {
     const { id } = req.params;
     const { name, type, setup_time, breakdown_time, is_active } = req.body;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     // Check if stage/area exists
     const stageArea = await db.get(
@@ -185,7 +185,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('manager'), async (req:
 router.delete('/:id', authenticateToken, requireMinimumRole('manager'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     // Check if stage/area has scheduled performances
     const performances = await db.all(

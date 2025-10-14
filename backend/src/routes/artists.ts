@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id } = req.query;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     let query = `
       SELECT 
@@ -38,7 +38,7 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => 
   try {
     const { id } = req.params;
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const row = await db.get(`
       SELECT 
         id, festival_id, name, genre, contact_name, contact_email, contact_phone,
@@ -76,7 +76,7 @@ router.post('/', authenticateToken, requireMinimumRole('coordinator'), async (re
       return res.status(400).json({ error: 'Festival ID is required' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if artist with same name already exists in this festival
     const existingArtist = await db.get(
@@ -129,7 +129,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('coordinator'), async (
       accommodation_requirements, status
     } = req.body;
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if artist exists
     const existingArtist = await db.get(
@@ -186,7 +186,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('coordinator'), async (
 router.delete('/:id', authenticateToken, requireMinimumRole('manager'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     // Check if artist has scheduled performances
     const performances = await db.all(
@@ -219,7 +219,7 @@ router.delete('/:id', authenticateToken, requireMinimumRole('manager'), async (r
 // Get artists for dropdown (id and name only)
 router.get('/dropdown/list', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const rows = await db.all(`
       SELECT id, name, status
       FROM artists 

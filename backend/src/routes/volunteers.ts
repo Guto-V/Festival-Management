@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Festival ID is required' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Map frontend fields to database fields
     const result = await db.run(`
@@ -60,7 +60,7 @@ router.post('/register', async (req, res) => {
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id } = req.query;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     let query = `
       SELECT id, festival_id, first_name, last_name, email, phone, skills, t_shirt_size,
@@ -96,7 +96,7 @@ router.post('/', authenticateToken, requireMinimumRole('coordinator'), async (re
       return res.status(400).json({ error: 'Festival ID, first name, last name, and email are required' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const result = await db.run(`
       INSERT INTO volunteers (
         festival_id, first_name, last_name, email, phone, skills, t_shirt_size,
@@ -131,7 +131,7 @@ router.post('/', authenticateToken, requireMinimumRole('coordinator'), async (re
 router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     const volunteer = await db.get(`
       SELECT id, festival_id, first_name, last_name, email, phone, skills, t_shirt_size,
@@ -162,7 +162,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('coordinator'), async (
       assigned_role, volunteer_status, notes 
     } = req.body;
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if volunteer exists
     const existingVolunteer = await db.get('SELECT id FROM volunteers WHERE id = ?', [id]);
@@ -212,7 +212,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('coordinator'), async (
 router.delete('/:id', authenticateToken, requireMinimumRole('manager'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const result = await db.run('DELETE FROM volunteers WHERE id = ?', [id]);
 

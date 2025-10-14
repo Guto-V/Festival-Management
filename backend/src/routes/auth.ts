@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 import { sendValidationError, sendUnauthorizedError, sendServerError, sendConflictError } from '../utils/errorHandler';
 
@@ -34,7 +34,7 @@ router.post('/register', authenticateToken, async (req: AuthenticatedRequest, re
     }
 
     // Check if user already exists
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const existingUser = await db.get(
       'SELECT id FROM users WHERE email = ?',
       [email]
@@ -83,7 +83,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Get user from database
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const user = await db.get(
       'SELECT id, email, password_hash, first_name, last_name, role, is_active FROM users WHERE email = ?',
       [email]
@@ -143,7 +143,7 @@ router.put('/profile', authenticateToken, async (req: AuthenticatedRequest, res)
     const { first_name, last_name, phone } = req.body;
     const userId = req.user!.id;
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     await db.run(
       'UPDATE users SET first_name = ?, last_name = ?, phone = ? WHERE id = ?',
       [first_name, last_name, phone, userId]
@@ -173,7 +173,7 @@ router.put('/change-password', authenticateToken, async (req: AuthenticatedReque
     }
 
     // Get current password hash
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const user = await db.get(
       'SELECT password_hash FROM users WHERE id = ?',
       [userId]

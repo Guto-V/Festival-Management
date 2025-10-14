@@ -2,6 +2,7 @@ import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
 import bcrypt from 'bcryptjs';
+import { DatabaseAdapter } from './database-universal';
 
 let db: Database | null = null;
 
@@ -472,6 +473,38 @@ This agreement is subject to the terms and conditions outlined above and any add
 export const getDatabase = (): Database => {
   if (!db) throw new Error('Database not initialized. Call initDatabase() first.');
   return db;
+};
+
+// SQLite adapter that implements the DatabaseAdapter interface
+export class SQLiteAdapter implements DatabaseAdapter {
+  async all(query: string, params?: any[]): Promise<any[]> {
+    if (!db) {
+      throw new Error('Database not initialized');
+    }
+    return await db.all(query, params || []);
+  }
+
+  async get(query: string, params?: any[]): Promise<any> {
+    if (!db) {
+      throw new Error('Database not initialized');
+    }
+    return await db.get(query, params || []);
+  }
+
+  async run(query: string, params?: any[]): Promise<{ lastID?: number; changes: number }> {
+    if (!db) {
+      throw new Error('Database not initialized');
+    }
+    const result = await db.run(query, params || []);
+    return {
+      lastID: result.lastID,
+      changes: result.changes || 0
+    };
+  }
+}
+
+export const getSQLiteDatabase = (): SQLiteAdapter => {
+  return new SQLiteAdapter();
 };
 
 export default { initDatabase, getDatabase };

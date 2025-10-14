@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -7,7 +7,7 @@ const router = express.Router();
 // Get all users (admin and manager only)
 router.get('/', authenticateToken, requireMinimumRole('manager'), async (req: AuthenticatedRequest, res) => {
   try {
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const rows = await db.all(`
       SELECT 
         id, email, first_name, last_name, role, phone, is_active, created_at
@@ -27,7 +27,7 @@ router.put('/:id/role', authenticateToken, requireMinimumRole('admin'), async (r
   try {
     const { id } = req.params;
     const { role } = req.body;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const validRoles = ['admin', 'manager', 'coordinator', 'read_only'];
     if (!validRoles.includes(role)) {
@@ -54,7 +54,7 @@ router.put('/:id/role', authenticateToken, requireMinimumRole('admin'), async (r
 router.put('/:id/deactivate', authenticateToken, requireMinimumRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     // Prevent deactivating yourself
     if (parseInt(id) === req.user!.id) {

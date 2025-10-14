@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -26,7 +26,7 @@ const validateDuration = (minutes: number): number => {
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id = 1, performance_date, venue_id } = req.query;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     let query = `
       SELECT 
@@ -87,7 +87,7 @@ router.get('/grid/:date', authenticateToken, async (req: AuthenticatedRequest, r
   try {
     const { date } = req.params;
     const { festival_id = 1 } = req.query;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     // Get all stage areas
     const stageAreas = await db.all(`
@@ -171,7 +171,7 @@ router.post('/performance', authenticateToken, requireMinimumRole('coordinator')
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Validate duration (minimum 5 minutes, no forced rounding)
     const validatedDuration = validateDuration(duration_minutes);
@@ -244,7 +244,7 @@ router.put('/performance/:id', authenticateToken, requireMinimumRole('coordinato
       changeover_time_after, soundcheck_time, soundcheck_duration, notes, status
     } = req.body;
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if performance exists
     const performance = await db.get(
@@ -334,7 +334,7 @@ router.put('/performance/:id', authenticateToken, requireMinimumRole('coordinato
 router.delete('/performance/:id', authenticateToken, requireMinimumRole('coordinator'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const result = await db.run(
       'DELETE FROM performances WHERE id = ?',
@@ -368,7 +368,7 @@ router.post('/changeover', authenticateToken, requireMinimumRole('coordinator'),
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Create a dummy artist entry for changeover if it doesn't exist
     const changeoverArtist = await db.get(

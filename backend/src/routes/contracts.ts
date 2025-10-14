@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 import crypto from 'crypto';
 
@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/artist/:artistId', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { artistId } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     const contracts = await db.all(`
       SELECT 
@@ -36,7 +36,7 @@ router.get('/artist/:artistId', authenticateToken, async (req: AuthenticatedRequ
 router.get('/templates', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id } = req.query;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     let query = 'SELECT * FROM contract_templates';
     let params: any[] = [];
@@ -65,7 +65,7 @@ router.post('/templates', authenticateToken, async (req: AuthenticatedRequest, r
       return res.status(400).json({ error: 'Name and content are required' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const result = await db.run(`
       INSERT INTO contract_templates (name, content, festival_id, created_by, created_at, updated_at)
       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -89,7 +89,7 @@ router.put('/templates/:id', authenticateToken, async (req: AuthenticatedRequest
     const { id } = req.params;
     const { name, content } = req.body;
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     await db.run(`
       UPDATE contract_templates 
       SET name = ?, content = ?, updated_at = CURRENT_TIMESTAMP
@@ -112,7 +112,7 @@ router.put('/templates/:id', authenticateToken, async (req: AuthenticatedRequest
 router.delete('/templates/:id', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     await db.run('DELETE FROM contract_templates WHERE id = ?', [id]);
     res.status(204).send();
@@ -132,7 +132,7 @@ router.post('/artist/:artistId', authenticateToken, async (req: AuthenticatedReq
       return res.status(400).json({ error: 'Template ID is required' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Generate secure token for contract signing
     const secureToken = crypto.randomBytes(32).toString('hex');
@@ -168,7 +168,7 @@ router.post('/artist/:artistId', authenticateToken, async (req: AuthenticatedReq
 router.put('/artist/:artistId/:contractId/send', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { contractId } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     await db.run(`
       UPDATE artist_contracts 
@@ -192,7 +192,7 @@ router.put('/artist/:artistId/:contractId/send', authenticateToken, async (req: 
 router.put('/artist/:artistId/:contractId/resend', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { contractId } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     await db.run(`
       UPDATE artist_contracts 
@@ -216,7 +216,7 @@ router.put('/artist/:artistId/:contractId/resend', authenticateToken, async (req
 router.put('/artist/:artistId/:contractId/void', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { contractId } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     await db.run(`
       UPDATE artist_contracts 
@@ -240,7 +240,7 @@ router.put('/artist/:artistId/:contractId/void', authenticateToken, async (req: 
 router.delete('/artist/:artistId/:contractId', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { contractId } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     await db.run('DELETE FROM artist_contracts WHERE id = ?', [contractId]);
     res.status(204).send();
@@ -254,7 +254,7 @@ router.delete('/artist/:artistId/:contractId', authenticateToken, async (req: Au
 router.get('/sign/:token', async (req, res) => {
   try {
     const { token } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const contract = await db.get(`
       SELECT 
@@ -301,7 +301,7 @@ router.post('/sign/:token', async (req, res) => {
       return res.status(400).json({ error: 'Signature data is required' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Verify contract exists and can be signed
     const contract = await db.get(

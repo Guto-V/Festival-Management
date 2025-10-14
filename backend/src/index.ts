@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
-import { initDatabase } from './utils/database-sqlite';
+import { initUniversalDatabase } from './utils/database-universal';
 import { config } from './config';
 // import { logger, requestLogger } from './utils/logger';
 
@@ -58,7 +58,7 @@ app.get('/api/volunteer-registration-test', (req, res) => {
 
 // Public volunteer registration endpoint (no auth required)
 app.post('/api/volunteer-registration', async (req, res) => {
-  const { getDatabase } = await import('./utils/database-sqlite');
+  const { getUniversalDatabase } = await import('./utils/database-universal');
   
   try {
     const { 
@@ -74,7 +74,7 @@ app.post('/api/volunteer-registration', async (req, res) => {
       return res.status(400).json({ error: 'Festival ID is required' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Map frontend fields to database fields
     const result = await db.run(`
@@ -155,7 +155,7 @@ const startServer = async () => {
     console.log(`Environment: ${config.nodeEnv}`);
     console.log(`Port: ${config.port}`);
     
-    await initDatabase();
+    await initUniversalDatabase();
     console.log('✅ Database initialized successfully');
     
     const server = app.listen(config.port, () => {

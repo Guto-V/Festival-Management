@@ -48,7 +48,8 @@
       "Bash(kill:*)",
       "Bash(git tag:*)",
       "Bash(timeout:*)",
-      "Bash(git submodule:*)"
+      "Bash(git submodule:*)",
+      "Bash(DATABASE_URL=\"postgresql://test:test@localhost:5432/test\" npm run dev)"
     ],
     "deny": []
   }

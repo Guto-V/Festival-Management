@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDatabase } from '../utils/database-sqlite';
+import { getUniversalDatabase } from '../utils/database-universal';
 import { authenticateToken, requireMinimumRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { festival_id } = req.query;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     let query = `
       SELECT id, festival_id, name, type, contact_name, contact_email, contact_phone,
@@ -41,7 +41,7 @@ router.post('/', authenticateToken, requireMinimumRole('coordinator'), async (re
       return res.status(400).json({ error: 'Festival ID, name, and type are required' });
     }
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     const result = await db.run(`
       INSERT INTO vendors (
         festival_id, name, type, contact_name, contact_email, contact_phone,
@@ -73,7 +73,7 @@ router.post('/', authenticateToken, requireMinimumRole('coordinator'), async (re
 router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     const vendor = await db.get(`
       SELECT id, festival_id, name, type, contact_name, contact_email, contact_phone,
@@ -102,7 +102,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('coordinator'), async (
       address, services_offered, rates, status, notes 
     } = req.body;
 
-    const db = getDatabase();
+    const db = getUniversalDatabase();
     
     // Check if vendor exists
     const existingVendor = await db.get('SELECT id FROM vendors WHERE id = ?', [id]);
@@ -145,7 +145,7 @@ router.put('/:id', authenticateToken, requireMinimumRole('coordinator'), async (
 router.delete('/:id', authenticateToken, requireMinimumRole('manager'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const db = getDatabase();
+    const db = getUniversalDatabase();
 
     const result = await db.run('DELETE FROM vendors WHERE id = ?', [id]);
 
