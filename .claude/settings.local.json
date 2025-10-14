@@ -47,7 +47,8 @@
       "Bash(./shutdown_ngrok.sh:*)",
       "Bash(kill:*)",
       "Bash(git tag:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(git submodule:*)"
     ],
     "deny": []
   }
