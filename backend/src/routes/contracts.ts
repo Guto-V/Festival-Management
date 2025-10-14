@@ -285,8 +285,9 @@ router.post('/public/:token/sign', async (req, res) => {
 
     // Verify contract exists and is signable
     const contract = await db.get(`
-      SELECT * FROM artist_contracts 
-      WHERE secure_token = ? AND status IN ('sent', 'viewed')
+      SELECT ac.*, a.id as artist_id FROM artist_contracts ac
+      JOIN artists a ON ac.artist_id = a.id
+      WHERE ac.secure_token = ? AND ac.status IN ('sent', 'viewed')
     `, [token]);
 
     if (!contract) {
@@ -305,9 +306,167 @@ router.post('/public/:token/sign', async (req, res) => {
       WHERE secure_token = ?
     `, [signature_data, token]);
 
+    // Update artist status to 'contracted' when they sign
+    await db.run(`
+      UPDATE artists 
+      SET status = 'contracted', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [contract.artist_id]);
+
     res.json({ message: 'Contract signed successfully', signed_at: new Date().toISOString() });
   } catch (error) {
     console.error('Sign contract error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Void contract (mark as void and revert artist status)
+router.put('/artist/:artistId/:contractId/void', authenticateToken, requireMinimumRole('coordinator'), async (req: AuthenticatedRequest, res) => {
+  try {
+    const { artistId, contractId } = req.params;
+    const db = getDatabase();
+
+    const result = await db.run(`
+      UPDATE artist_contracts 
+      SET status = 'void', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND artist_id = ?
+    `, [contractId, artistId]);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Contract not found' });
+    }
+
+    // Revert artist status to 'confirmed' when contract is voided
+    await db.run(`
+      UPDATE artists 
+      SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [artistId]);
+
+    // Get updated contract
+    const updatedContract = await db.get(`
+      SELECT ac.*, ct.name as template_name, a.name as artist_name
+      FROM artist_contracts ac
+      JOIN contract_templates ct ON ac.template_id = ct.id
+      JOIN artists a ON ac.artist_id = a.id
+      WHERE ac.id = ? AND ac.artist_id = ?
+    `, [contractId, artistId]);
+
+    res.json(updatedContract);
+  } catch (error) {
+    console.error('Void contract error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete contract
+router.delete('/artist/:artistId/:contractId', authenticateToken, requireMinimumRole('coordinator'), async (req: AuthenticatedRequest, res) => {
+  try {
+    const { artistId, contractId } = req.params;
+    const db = getDatabase();
+
+    // Check if contract exists
+    const contract = await db.get('SELECT * FROM artist_contracts WHERE id = ? AND artist_id = ?', [contractId, artistId]);
+    if (!contract) {
+      return res.status(404).json({ error: 'Contract not found' });
+    }
+
+    // Delete contract versions first (foreign key constraint)
+    await db.run('DELETE FROM contract_versions WHERE contract_id = ?', [contractId]);
+    
+    // Delete the contract
+    await db.run('DELETE FROM artist_contracts WHERE id = ? AND artist_id = ?', [contractId, artistId]);
+
+    // Revert artist status to 'confirmed' when contract is deleted
+    await db.run(`
+      UPDATE artists 
+      SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [artistId]);
+
+    res.json({ message: 'Contract deleted successfully' });
+  } catch (error) {
+    console.error('Delete contract error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Resend contract (regenerate token and mark as sent)
+router.put('/artist/:artistId/:contractId/resend', authenticateToken, requireMinimumRole('coordinator'), async (req: AuthenticatedRequest, res) => {
+  try {
+    const { artistId, contractId } = req.params;
+    const db = getDatabase();
+
+    // Generate new secure token
+    const secureToken = crypto.randomBytes(32).toString('hex');
+
+    const result = await db.run(`
+      UPDATE artist_contracts 
+      SET status = 'sent', secure_token = ?, sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND artist_id = ?
+    `, [secureToken, contractId, artistId]);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Contract not found' });
+    }
+
+    // Get updated contract
+    const updatedContract = await db.get(`
+      SELECT ac.*, ct.name as template_name, a.name as artist_name
+      FROM artist_contracts ac
+      JOIN contract_templates ct ON ac.template_id = ct.id
+      JOIN artists a ON ac.artist_id = a.id
+      WHERE ac.id = ? AND ac.artist_id = ?
+    `, [contractId, artistId]);
+
+    res.json(updatedContract);
+  } catch (error) {
+    console.error('Resend contract error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update contract content (amend)
+router.put('/artist/:artistId/:contractId/amend', authenticateToken, requireMinimumRole('coordinator'), async (req: AuthenticatedRequest, res) => {
+  try {
+    const { artistId, contractId } = req.params;
+    const { custom_content, deadline } = req.body;
+    const db = getDatabase();
+
+    // Check if contract exists
+    const contract = await db.get('SELECT * FROM artist_contracts WHERE id = ? AND artist_id = ?', [contractId, artistId]);
+    if (!contract) {
+      return res.status(404).json({ error: 'Contract not found' });
+    }
+
+    // Update contract
+    await db.run(`
+      UPDATE artist_contracts 
+      SET custom_content = ?, deadline = ?, status = 'draft', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND artist_id = ?
+    `, [custom_content, deadline, contractId, artistId]);
+
+    // Create new version entry
+    const versionCount = await db.get('SELECT COUNT(*) as count FROM contract_versions WHERE contract_id = ?', [contractId]);
+    const nextVersion = versionCount.count + 1;
+
+    await db.run(`
+      INSERT INTO contract_versions (contract_id, version_number, content, changes_summary, created_by)
+      VALUES (?, ?, ?, ?, ?)
+    `, [contractId, nextVersion, custom_content, 'Contract amended', req.user!.id]);
+
+    // Get updated contract
+    const updatedContract = await db.get(`
+      SELECT ac.*, ct.name as template_name, a.name as artist_name
+      FROM artist_contracts ac
+      JOIN contract_templates ct ON ac.template_id = ct.id
+      JOIN artists a ON ac.artist_id = a.id
+      WHERE ac.id = ? AND ac.artist_id = ?
+    `, [contractId, artistId]);
+
+    res.json(updatedContract);
+  } catch (error) {
+    console.error('Amend contract error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
