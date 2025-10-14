@@ -110,9 +110,11 @@ router.get('/grid/:date', authenticateToken, async (req: AuthenticatedRequest, r
         p.id, p.artist_id, p.stage_area_id, p.start_time, p.duration_minutes,
         p.changeover_time_after as setup_time, p.soundcheck_time, p.soundcheck_duration,
         p.notes, p.status,
-        a.name as artist_name, a.genre
+        a.name as artist_name, a.genre,
+        sa.name as stage_area_name, sa.type as stage_area_type
       FROM performances p
       JOIN artists a ON p.artist_id = a.id
+      JOIN stages_areas sa ON p.stage_area_id = sa.id
       WHERE p.festival_id = ? AND p.performance_date = ?
       ORDER BY p.start_time ASC
     `, [festival_id, date]);
