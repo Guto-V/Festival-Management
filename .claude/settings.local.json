@@ -45,7 +45,9 @@
       "Bash(ngrok version)",
       "WebFetch(domain:debrah-ravening-margorie.ngrok-free.dev)",
       "Bash(./shutdown_ngrok.sh:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(git tag:*)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }

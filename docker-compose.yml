@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # Main application
+  festival-app:
+    build: .
+    ports:
+      - "${PORT:-3001}:3001"
+    environment:
+      # Core settings
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3001
+      
+      # Database
+      - DATABASE_URL=${DATABASE_URL:-sqlite:./data/festival.db}
+      
+      # Security
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-change-in-production}
+      - BCRYPT_ROUNDS=${BCRYPT_ROUNDS:-12}
+      
+      # CORS
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+      
+      # Email
+      - EMAIL_SERVICE=${EMAIL_SERVICE:-console}
+      - EMAIL_API_KEY=${EMAIL_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM:-noreply@festival.local}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      
+      # Features
+      - ENABLE_CONTRACT_SIGNING=${ENABLE_CONTRACT_SIGNING:-true}
+      - ENABLE_EMAIL_NOTIFICATIONS=${ENABLE_EMAIL_NOTIFICATIONS:-false}
+      
+    volumes:
+      # Persistent data
+      - festival_data:/app/data
+      - festival_logs:/app/logs
+      - festival_uploads:/app/uploads
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    restart: unless-stopped
+    
+    networks:
+      - festival-network
+
+  # Optional: Production database (uncomment for production)
+  # festival-db:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     - POSTGRES_DB=festival_management
+  #     - POSTGRES_USER=${DB_USER:-festival}
+  #     - POSTGRES_PASSWORD=${DB_PASSWORD}
+  #   volumes:
+  #     - festival_postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - festival-network
+  #   restart: unless-stopped
+
+  # Optional: Redis for caching (uncomment for production)
+  # festival-redis:
+  #   image: redis:7-alpine
+  #   volumes:
+  #     - festival_redis_data:/data
+  #   networks:
+  #     - festival-network
+  #   restart: unless-stopped
+
+volumes:
+  festival_data:
+    driver: local
+  festival_logs:
+    driver: local
+  festival_uploads:
+    driver: local
+  # festival_postgres_data:
+  #   driver: local
+  # festival_redis_data:
+  #   driver: local
+
+networks:
+  festival-network:
+    driver: bridge
+
+# Production override example:
+# Copy this to docker-compose.prod.yml and customize
+# Then run: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
