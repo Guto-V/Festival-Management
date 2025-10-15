@@ -10,19 +10,22 @@
       }
     },
     {
-      "src": "backend/src/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["backend/src/**"],
-        "memory": 1024,
-        "maxDuration": 30
-      }
+      "src": "api/health.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/test.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/backend/src/index.ts"
+      "src": "/api/health",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "/api/test",
+      "dest": "/api/test.js"
     },
     {
       "src": "/(.*)",
