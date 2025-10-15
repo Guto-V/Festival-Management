@@ -13,14 +13,26 @@ let databaseAdapter: DatabaseAdapter | null = null;
 // Initialize the appropriate database based on configuration
 export const initUniversalDatabase = async (): Promise<void> => {
   try {
+    console.log('🔧 Database configuration:', {
+      type: config.database.type,
+      url: config.database.url ? '[CONFIGURED]' : '[NOT SET]',
+      isProduction: config.isProduction
+    });
+
     if (config.database.type === 'postgresql') {
       // Use PostgreSQL for production
+      if (!config.database.url || !config.database.url.includes('postgresql')) {
+        throw new Error('PostgreSQL DATABASE_URL is required for production but not configured');
+      }
       const { initPostgresDatabase, getPostgresDatabase } = await import('./database-postgres');
       await initPostgresDatabase();
       databaseAdapter = getPostgresDatabase();
       console.log('🐘 Using PostgreSQL database');
     } else {
-      // Use SQLite for development
+      // Use SQLite for development - but warn in serverless environments
+      if (config.isProduction) {
+        console.warn('⚠️  Using SQLite in production/serverless environment - this may not work correctly');
+      }
       const { initDatabase: initSQLite, getSQLiteDatabase } = await import('./database-sqlite');
       await initSQLite();
       databaseAdapter = getSQLiteDatabase();
@@ -28,6 +40,14 @@ export const initUniversalDatabase = async (): Promise<void> => {
     }
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
+    
+    // In serverless environments, don't crash the entire function
+    if (config.isProduction) {
+      console.error('🚨 Database not available - some endpoints will not work');
+      // Don't throw in production - let the app start without database
+      return;
+    }
+    
     throw error;
   }
 };

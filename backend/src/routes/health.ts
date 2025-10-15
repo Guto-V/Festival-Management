@@ -91,6 +91,21 @@ router.get('/health/live', (req, res) => {
   res.status(200).json({
     status: 'alive',
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.8.4',
+  });
+});
+
+// Basic health check without database (for Vercel debugging)
+router.get('/health/basic', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    databaseType: process.env.DATABASE_URL ? 'postgresql' : 'sqlite',
+    databaseConfigured: !!process.env.DATABASE_URL,
+    version: '1.8.4',
+    uptime: process.uptime(),
   });
 });
 
