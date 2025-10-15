@@ -149,42 +149,75 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-const startServer = async () => {
-  try {
-    console.log('🚀 Starting Festival Management System v1.8.1');
-    console.log(`Environment: ${config.nodeEnv}`);
-    console.log(`Port: ${config.port}`);
-    
-    await initUniversalDatabase();
-    console.log('✅ Database initialized successfully');
-    
-    const server = app.listen(config.port, () => {
-      console.log(`🎪 Festival Management API running on port ${config.port}`);
-      console.log(`Health check: http://localhost:${config.port}/api/health`);
-    });
-    
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM received, shutting down gracefully');
-      server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-      });
-    });
-    
-    process.on('SIGINT', () => {
-      console.log('SIGINT received, shutting down gracefully');
-      server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-      });
-    });
-    
-  } catch (error: any) {
-    console.error('Failed to start server:', error.message);
-    console.error(error.stack);
-    process.exit(1);
+// Initialize database only once
+let dbInitialized = false;
+const initializeDatabase = async () => {
+  if (!dbInitialized) {
+    try {
+      console.log('🚀 Starting Festival Management System v1.8.4');
+      console.log(`Environment: ${config.nodeEnv}`);
+      
+      await initUniversalDatabase();
+      console.log('✅ Database initialized successfully');
+      dbInitialized = true;
+    } catch (error: any) {
+      console.error('❌ Database initialization failed:', error.message);
+      // Don't crash in serverless - let basic endpoints work
+      if (config.isProduction) {
+        console.log('⚠️  Continuing without database in serverless environment');
+        dbInitialized = true; // Mark as initialized to prevent retries
+      } else {
+        throw error;
+      }
+    }
   }
 };
 
-startServer();
+// For Vercel serverless deployment
+if (config.isProduction) {
+  // Initialize database when first request comes in
+  app.use(async (req, res, next) => {
+    await initializeDatabase();
+    next();
+  });
+  
+  // Export the app for Vercel (both CommonJS and ES modules)
+  module.exports = app;
+  export default app;
+} else {
+  // Traditional server for local development
+  const startServer = async () => {
+    try {
+      await initializeDatabase();
+      
+      const server = app.listen(config.port, () => {
+        console.log(`🎪 Festival Management API running on port ${config.port}`);
+        console.log(`Health check: http://localhost:${config.port}/api/health`);
+      });
+      
+      // Graceful shutdown
+      process.on('SIGTERM', () => {
+        console.log('SIGTERM received, shutting down gracefully');
+        server.close(() => {
+          console.log('Server closed');
+          process.exit(0);
+        });
+      });
+      
+      process.on('SIGINT', () => {
+        console.log('SIGINT received, shutting down gracefully');
+        server.close(() => {
+          console.log('Server closed');
+          process.exit(0);
+        });
+      });
+      
+    } catch (error: any) {
+      console.error('Failed to start server:', error.message);
+      console.error(error.stack);
+      process.exit(1);
+    }
+  };
+
+  startServer();
+}
