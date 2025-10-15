@@ -35,6 +35,8 @@ export default async function handler(req, res) {
         user: {
           id: 1,
           email: 'admin@festival.com',
+          first_name: 'Admin',
+          last_name: 'User',
           firstName: 'Admin',
           lastName: 'User',
           role: 'admin'
@@ -68,6 +70,8 @@ export default async function handler(req, res) {
             user: {
               id: user.id,
               email: user.email,
+              first_name: user.first_name,
+              last_name: user.last_name,
               firstName: user.first_name,
               lastName: user.last_name,
               role: user.role
