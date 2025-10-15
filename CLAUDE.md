@@ -1,27 +1,33 @@
 # Festival Management System - Claude Context
 
-## Current Project State (v1.8.2)
-- **Status**: Production-ready system with contracts functionality restored
+## Current Project State (v1.8.4)
+- **Status**: Deployed on Vercel with Supabase database
 - **Login Credentials**: admin@festival.com / admin123
-- **Port**: Backend runs on 3001, Frontend on 3000
+- **Deployment**: https://festival-management.vercel.app
 
 ## Recent Major Changes
-- **v1.8.2**: Integrated frontend into main repository (no more submodule issues)
-- **Contracts API**: Fully restored and functional
-- **Schedule fixes**: Timeline display issues resolved
-- **Production infrastructure**: Docker, CI/CD, health checks added
+- **v1.8.4**: Deployed to Vercel with Supabase PostgreSQL database
+- **Function Limit**: Reduced API endpoints to stay under Vercel's 12 function limit
+- **Database Migration**: Converted from SQLite to PostgreSQL for cloud deployment
+- **CORS & Authentication**: Fixed for serverless environment
 
-## Key Issues Resolved
-1. **Missing signed contracts**: Restored complete contracts API
-2. **Schedule display problems**: Fixed extra empty space after end time
-3. **Data loss prevention**: Converted frontend from submodule to regular files
-4. **Authentication**: Server startup issues resolved
+## CRITICAL: Vercel Deployment Constraints
+**⚠️ 12 Function Limit**: Vercel Hobby plan allows maximum 12 serverless functions
+- **Essential Functions Only**: Keep only critical API endpoints
+- **Current Functions**: `/api/auth/login.js`, `/api/system-stats.js`, `/api/init-db.js`
+- **Remove Debug Files**: Always remove test/debug functions before deployment
+
+## Database Configuration  
+- **Provider**: Supabase PostgreSQL
+- **Connection**: Transaction pooler URI (port 6543) - IPv6 compatibility required
+- **Password**: dahtUj-sofdiq-9rokpy
+- **Initialization**: POST to `/api/init-db` after deployment
 
 ## Current Architecture
-- **Backend**: Node.js/Express with SQLite database
-- **Frontend**: React/TypeScript with Material-UI
-- **Infrastructure**: Docker, GitHub Actions CI/CD
-- **Deployment**: Automated scripts for dev/staging/production
+- **Backend**: Serverless functions on Vercel
+- **Frontend**: React/TypeScript with Material-UI  
+- **Database**: Supabase PostgreSQL
+- **Deployment**: Automatic from GitHub main branch
 
 ## Important Commands
 ```bash
