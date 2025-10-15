@@ -28,6 +28,9 @@
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build",

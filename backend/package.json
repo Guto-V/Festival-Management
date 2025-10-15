@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Event Management System Backend API",
   "main": "index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
