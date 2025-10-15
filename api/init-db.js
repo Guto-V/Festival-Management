@@ -95,12 +95,16 @@ export default async function handler(req, res) {
 
     const artistCount = await pool.query('SELECT COUNT(*) FROM artists');
     if (parseInt(artistCount.rows[0].count) === 0) {
-      await pool.query(`
-        INSERT INTO artists (festival_id, name, genre, contact_name, contact_email, status) VALUES
-        (1, 'The Electric Waves', 'Electronic', 'Sarah Johnson', 'sarah@electricwaves.com', 'confirmed'),
-        (1, 'Acoustic Dreams', 'Folk', 'Mike Chen', 'mike@acousticdreams.com', 'negotiating'),
-        (2, 'City Jazz Ensemble', 'Jazz', 'Lisa Rodriguez', 'lisa@cityjazz.com', 'inquired')
-      `);
+      try {
+        await pool.query(`
+          INSERT INTO artists (festival_id, name, genre, contact_name, contact_email) VALUES
+          (1, 'The Electric Waves', 'Electronic', 'Sarah Johnson', 'sarah@electricwaves.com'),
+          (1, 'Acoustic Dreams', 'Folk', 'Mike Chen', 'mike@acousticdreams.com'),
+          (2, 'City Jazz Ensemble', 'Jazz', 'Lisa Rodriguez', 'lisa@cityjazz.com')
+        `);
+      } catch (artistError) {
+        console.log('Artist insert error (non-critical):', artistError.message);
+      }
     }
 
     await pool.end();
