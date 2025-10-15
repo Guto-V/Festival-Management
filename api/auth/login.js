@@ -1,0 +1,47 @@
+// Login endpoint
+export default async function handler(req, res) {
+  // Handle CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { email, password } = req.body;
+  
+  if (!email || !password) {
+    return res.status(400).json({ 
+      success: false,
+      message: 'Email and password are required' 
+    });
+  }
+
+  // For admin credentials
+  if (email === 'admin@festival.com' && password === 'admin123') {
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: 1,
+        email: 'admin@festival.com',
+        first_name: 'Admin',
+        last_name: 'User',
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'admin'
+      },
+      token: `auth-token-${Date.now()}`
+    });
+  }
+
+  return res.status(401).json({ 
+    success: false,
+    message: 'Invalid email or password' 
+  });
+}
