@@ -15,6 +15,14 @@
       "dest": "/api/schedule"
     },
     {
+      "src": "/api/volunteers",
+      "dest": "/api/vendors"
+    },
+    {
+      "src": "/api/contracts/templates",
+      "dest": "/api/contracts/templates"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },

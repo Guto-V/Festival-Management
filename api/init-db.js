@@ -52,6 +52,15 @@ export default async function handler(req, res) {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Alter existing table to allow null dates if it exists
+    try {
+      await pool.query('ALTER TABLE festivals ALTER COLUMN start_date DROP NOT NULL');
+      await pool.query('ALTER TABLE festivals ALTER COLUMN end_date DROP NOT NULL');
+    } catch (alterError) {
+      // Ignore if columns are already nullable
+      console.log('Column alter warning (non-critical):', alterError.message);
+    }
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS artists (

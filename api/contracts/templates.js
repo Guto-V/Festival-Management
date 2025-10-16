@@ -1,4 +1,4 @@
-// Volunteers API endpoint
+// Contract templates API endpoint
 export default async function handler(req, res) {
   // Handle CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
