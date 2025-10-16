@@ -38,7 +38,16 @@ export default async function handler(req, res) {
           return res.status(404).json({ error: 'Festival not found' });
         }
         
-        return res.status(200).json(result.rows[0]);
+        // Transform response to match frontend interface
+        const festival = result.rows[0];
+        const transformedFestival = {
+          ...festival,
+          year: festival.start_date ? new Date(festival.start_date).getFullYear() : new Date().getFullYear(),
+          budget_total: festival.budget || 0,
+          budget_allocated: 0
+        };
+        
+        return res.status(200).json(transformedFestival);
       }
       
       // Get all festivals
@@ -51,7 +60,16 @@ export default async function handler(req, res) {
       `);
 
       await pool.end();
-      return res.status(200).json(result.rows);
+      
+      // Transform all festivals to match frontend interface
+      const transformedFestivals = result.rows.map(festival => ({
+        ...festival,
+        year: festival.start_date ? new Date(festival.start_date).getFullYear() : new Date().getFullYear(),
+        budget_total: festival.budget || 0,
+        budget_allocated: 0
+      }));
+      
+      return res.status(200).json(transformedFestivals);
     }
 
     if (req.method === 'POST') {
@@ -64,7 +82,17 @@ export default async function handler(req, res) {
       `, [name, description, start_date, end_date, location, website, contact_email, contact_phone, budget, status || 'planning']);
 
       await pool.end();
-      return res.status(201).json(result.rows[0]);
+      
+      // Transform response to match frontend interface
+      const festival = result.rows[0];
+      const transformedFestival = {
+        ...festival,
+        year: festival.start_date ? new Date(festival.start_date).getFullYear() : new Date().getFullYear(),
+        budget_total: festival.budget || 0,
+        budget_allocated: 0
+      };
+      
+      return res.status(201).json(transformedFestival);
     }
 
     if (req.method === 'PUT') {
@@ -92,7 +120,16 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Festival not found' });
       }
       
-      return res.status(200).json(result.rows[0]);
+      // Transform response to match frontend interface
+      const festival = result.rows[0];
+      const transformedFestival = {
+        ...festival,
+        year: festival.start_date ? new Date(festival.start_date).getFullYear() : new Date().getFullYear(),
+        budget_total: festival.budget || 0,
+        budget_allocated: 0
+      };
+      
+      return res.status(200).json(transformedFestival);
     }
 
     await pool.end();
