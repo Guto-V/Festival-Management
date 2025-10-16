@@ -28,7 +28,6 @@ export default async function handler(req, res) {
           name VARCHAR(255) NOT NULL,
           capacity INTEGER,
           type VARCHAR(100),
-          location VARCHAR(255),
           description TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -62,7 +61,6 @@ export default async function handler(req, res) {
           name VARCHAR(255) NOT NULL,
           capacity INTEGER,
           type VARCHAR(100),
-          location VARCHAR(255),
           description TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -70,10 +68,10 @@ export default async function handler(req, res) {
       `);
 
       const result = await pool.query(`
-        INSERT INTO stages_areas (event_id, name, capacity, type, location, description)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO stages_areas (event_id, name, capacity, type, description)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING *
-      `, [event_id || 1, name, capacity, type, location, description]);
+      `, [event_id || 1, name, capacity, type, description]);
 
       await pool.end();
       return res.status(201).json(result.rows[0]);
@@ -86,10 +84,10 @@ export default async function handler(req, res) {
       const result = await pool.query(`
         UPDATE stages_areas SET
           event_id = $1, name = $2, capacity = $3, type = $4,
-          location = $5, description = $6, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $7
+          description = $5, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $6
         RETURNING *
-      `, [event_id, name, capacity, type, location, description, id]);
+      `, [event_id, name, capacity, type, description, id]);
 
       await pool.end();
       
