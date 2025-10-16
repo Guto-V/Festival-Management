@@ -96,7 +96,12 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      const { name, description, start_date, end_date, location, website, contact_email, contact_phone, budget, status } = req.body;
+      // Extract only the fields that exist in our database schema
+      const { 
+        name, description, start_date, end_date, location, 
+        website, contact_email, contact_phone, status,
+        budget, budget_total // Accept both budget and budget_total
+      } = req.body;
       
       console.log('PUT request body:', req.body);
       console.log('Festival ID:', id);
@@ -105,6 +110,9 @@ export default async function handler(req, res) {
       const startDate = start_date || null;
       const endDate = end_date || null;
       
+      // Use budget_total if budget is not provided
+      const budgetValue = budget !== undefined ? budget : budget_total;
+      
       const result = await pool.query(`
         UPDATE festivals SET
           name = $1, description = $2, start_date = $3, end_date = $4,
@@ -112,7 +120,7 @@ export default async function handler(req, res) {
           budget = $9, status = $10, updated_at = CURRENT_TIMESTAMP
         WHERE id = $11
         RETURNING *
-      `, [name, description, startDate, endDate, location, website, contact_email, contact_phone, budget, status, id]);
+      `, [name, description, startDate, endDate, location, website, contact_email, contact_phone, budgetValue, status, id]);
 
       await pool.end();
       
