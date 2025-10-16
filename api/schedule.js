@@ -1,4 +1,4 @@
-// Schedule API endpoint
+// Schedule and Budget API endpoint (consolidated)
 export default async function handler(req, res) {
   // Handle CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,6 +9,19 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  const { url } = req;
+  
+  // Handle both /api/schedule and /api/budget requests
+  if (url.includes('budget')) {
+    if (req.method === 'GET') {
+      return res.status(200).json([]);
+    }
+    if (req.method === 'POST') {
+      return res.status(201).json({ id: Date.now(), ...req.body });
+    }
+  }
+
+  // Default to schedule behavior
   if (req.method === 'GET') {
     return res.status(200).json([]);
   }

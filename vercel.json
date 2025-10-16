@@ -3,6 +3,10 @@
   "outputDirectory": "frontend/build",
   "routes": [
     {
+      "src": "/api/budget",
+      "dest": "/api/schedule"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },

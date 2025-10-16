@@ -1,4 +1,4 @@
-// Budget API endpoint
+// Stages and Areas API endpoint
 export default async function handler(req, res) {
   // Handle CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,7 +14,16 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    return res.status(201).json({ id: Date.now(), ...req.body });
+    const { name, capacity, type, location, description } = req.body;
+    return res.status(201).json({ 
+      id: Date.now(), 
+      name, 
+      capacity, 
+      type, 
+      location, 
+      description,
+      created_at: new Date().toISOString()
+    });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
