@@ -17,11 +17,8 @@ export default async function handler(req, res) {
       ssl: { rejectUnauthorized: false }
     });
 
-    // Extract ID from URL path if it exists (e.g., /api/festivals/1)
-    const urlParts = req.url.split('?')[0].split('/'); // Remove query params first
-    const lastPart = urlParts[urlParts.length - 1];
-    const isNumericId = /^\d+$/.test(lastPart);
-    const id = isNumericId ? lastPart : req.query.id;
+    // Get ID from query parameter (rewritten by Vercel routes)
+    const { id } = req.query;
 
     if (req.method === 'GET') {
       
