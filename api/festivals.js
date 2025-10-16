@@ -17,8 +17,13 @@ export default async function handler(req, res) {
       ssl: { rejectUnauthorized: false }
     });
 
+    // Extract ID from URL path if it exists (e.g., /api/festivals/1)
+    const urlParts = req.url.split('?')[0].split('/'); // Remove query params first
+    const lastPart = urlParts[urlParts.length - 1];
+    const isNumericId = /^\d+$/.test(lastPart);
+    const id = isNumericId ? lastPart : req.query.id;
+
     if (req.method === 'GET') {
-      const { id } = req.query;
       
       if (id) {
         // Get single festival by ID
@@ -66,7 +71,6 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      const { id } = req.query;
       const { name, description, start_date, end_date, location, website, contact_email, contact_phone, budget, status } = req.body;
 
       const result = await pool.query(`
