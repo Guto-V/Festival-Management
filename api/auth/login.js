@@ -10,7 +10,8 @@ export default async function handler(req, res) {
   }
 
   // Handle profile requests
-  if (req.method === 'GET' || req.url?.includes('profile')) {
+  const url = req.url || '';
+  if (req.method === 'GET' || url.includes('profile')) {
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

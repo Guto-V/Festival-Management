@@ -19,8 +19,35 @@ export default async function handler(req, res) {
 
     // Get ID from query parameter (rewritten by Vercel routes)
     const { id } = req.query;
+    const url = req.url || '';
 
     if (req.method === 'GET') {
+      
+      // Check if requesting system stats (should be first check)
+      if (url.includes('system-stats')) {
+        const [
+          festivalsResult,
+          artistsResult,
+          usersResult
+        ] = await Promise.all([
+          pool.query('SELECT COUNT(*) as count FROM festivals'),
+          pool.query('SELECT COUNT(*) as count FROM artists'),
+          pool.query('SELECT COUNT(*) as count FROM users WHERE email IS NOT NULL')
+        ]);
+
+        await pool.end();
+
+        const systemStats = {
+          totalFestivals: parseInt(festivalsResult.rows[0].count),
+          totalArtists: parseInt(artistsResult.rows[0].count),
+          totalUsers: parseInt(usersResult.rows[0].count)
+        };
+
+        return res.status(200).json({
+          success: true,
+          stats: systemStats
+        });
+      }
       
       if (id) {
         // Check if requesting stats for this festival
@@ -82,31 +109,6 @@ export default async function handler(req, res) {
         return res.status(200).json(transformedFestival);
       }
       
-      // Check if requesting system stats
-      if (url.includes('system-stats')) {
-        const [
-          festivalsResult,
-          artistsResult,
-          usersResult
-        ] = await Promise.all([
-          pool.query('SELECT COUNT(*) as count FROM festivals'),
-          pool.query('SELECT COUNT(*) as count FROM artists'),
-          pool.query('SELECT COUNT(*) as count FROM users WHERE email IS NOT NULL')
-        ]);
-
-        await pool.end();
-
-        const systemStats = {
-          totalFestivals: parseInt(festivalsResult.rows[0].count),
-          totalArtists: parseInt(artistsResult.rows[0].count),
-          totalUsers: parseInt(usersResult.rows[0].count)
-        };
-
-        return res.status(200).json({
-          success: true,
-          stats: systemStats
-        });
-      }
 
       // Get all festivals
       const result = await pool.query(`
