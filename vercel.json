@@ -4,7 +4,7 @@
   "routes": [
     {
       "src": "/api/system-stats",
-      "dest": "/api/festivals"
+      "dest": "/api/index"
     },
     {
       "src": "/api/auth/profile",
@@ -12,15 +12,23 @@
     },
     {
       "src": "/api/festivals/([0-9]+)/stats",
-      "dest": "/api/festivals?id=$1"
+      "dest": "/api/index?id=$1"
     },
     {
       "src": "/api/festivals/([0-9]+)",
-      "dest": "/api/festivals?id=$1"
+      "dest": "/api/index?id=$1"
+    },
+    {
+      "src": "/api/festivals",
+      "dest": "/api/index"
     },
     {
       "src": "/api/artists/([0-9]+)",
-      "dest": "/api/artists?id=$1"
+      "dest": "/api/index?id=$1"
+    },
+    {
+      "src": "/api/artists",
+      "dest": "/api/index"
     },
     {
       "src": "/api/stages-areas/([0-9]+)",

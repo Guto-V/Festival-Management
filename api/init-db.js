@@ -62,8 +62,9 @@ export default async function handler(req, res) {
       console.log('Column alter warning (non-critical):', alterError.message);
     }
 
-    // Recreate performances table with correct schema
+    // Recreate all tables with correct schemas matching local development
     try {
+      // Drop and recreate performances table
       await pool.query('DROP TABLE IF EXISTS performances CASCADE');
       await pool.query(`
         CREATE TABLE performances (
@@ -83,9 +84,74 @@ export default async function handler(req, res) {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      console.log('Performances table recreated with correct schema');
-    } catch (performanceError) {
-      console.log('Performance table creation warning:', performanceError.message);
+
+      // Drop and recreate volunteers table with correct schema
+      await pool.query('DROP TABLE IF EXISTS volunteers CASCADE');
+      await pool.query(`
+        CREATE TABLE volunteers (
+          id SERIAL PRIMARY KEY,
+          festival_id INTEGER NOT NULL,
+          first_name VARCHAR(255) NOT NULL,
+          last_name VARCHAR(255) NOT NULL,
+          email VARCHAR(255) NOT NULL,
+          phone VARCHAR(50),
+          skills TEXT,
+          t_shirt_size VARCHAR(10),
+          dietary_requirements TEXT,
+          emergency_contact_name VARCHAR(255),
+          emergency_contact_phone VARCHAR(50),
+          assigned_role VARCHAR(255),
+          volunteer_status VARCHAR(50) DEFAULT 'applied' CHECK(volunteer_status IN ('applied', 'approved', 'rejected', 'confirmed')),
+          notes TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Drop and recreate contract_templates table with correct schema
+      await pool.query('DROP TABLE IF EXISTS contract_templates CASCADE');
+      await pool.query(`
+        CREATE TABLE contract_templates (
+          id SERIAL PRIMARY KEY,
+          festival_id INTEGER NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          content TEXT NOT NULL,
+          is_default BOOLEAN DEFAULT FALSE,
+          created_by INTEGER DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Drop and recreate volunteer_applications table
+      await pool.query('DROP TABLE IF EXISTS volunteer_applications CASCADE');
+      await pool.query(`
+        CREATE TABLE volunteer_applications (
+          id SERIAL PRIMARY KEY,
+          festival_id INTEGER NOT NULL,
+          first_name VARCHAR(255) NOT NULL,
+          last_name VARCHAR(255) NOT NULL,
+          email VARCHAR(255) NOT NULL,
+          phone VARCHAR(50),
+          emergency_contact_name VARCHAR(255),
+          emergency_contact_phone VARCHAR(50),
+          availability TEXT,
+          skills TEXT,
+          experience TEXT,
+          dietary_requirements TEXT,
+          accommodation_needed BOOLEAN DEFAULT false,
+          transport_needed BOOLEAN DEFAULT false,
+          status VARCHAR(50) DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'declined')),
+          notes TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      console.log('All tables recreated with correct schemas matching local development');
+    } catch (schemaError) {
+      console.log('Schema recreation warning:', schemaError.message);
     }
 
     await pool.query(`
