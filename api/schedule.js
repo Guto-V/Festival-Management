@@ -41,7 +41,6 @@ export default async function handler(req, res) {
           performance_date DATE,
           start_time TIME,
           duration_minutes INTEGER DEFAULT 60,
-          setup_time INTEGER DEFAULT 15,
           status VARCHAR(50) DEFAULT 'scheduled',
           notes TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -74,14 +73,13 @@ export default async function handler(req, res) {
         const result = await pool.query(`
           INSERT INTO performances (
             festival_id, artist_id, stage_area_id, performance_date,
-            start_time, duration_minutes, setup_time, status, notes
+            start_time, duration_minutes, status, notes
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING *
         `, [
           festival_id || 1, artist_id, stage_area_id, performance_date,
-          start_time, duration_minutes || 60, setup_time || 15, 
-          status || 'scheduled', notes
+          start_time, duration_minutes || 60, status || 'scheduled', notes
         ]);
 
         await pool.end();
@@ -102,12 +100,12 @@ export default async function handler(req, res) {
           UPDATE performances SET
             festival_id = $1, artist_id = $2, stage_area_id = $3,
             performance_date = $4, start_time = $5, duration_minutes = $6,
-            setup_time = $7, status = $8, notes = $9, updated_at = CURRENT_TIMESTAMP
-          WHERE id = $10
+            status = $7, notes = $8, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $9
           RETURNING *
         `, [
           festival_id, artist_id, stage_area_id, performance_date,
-          start_time, duration_minutes, setup_time, status, notes, id
+          start_time, duration_minutes, status, notes, id
         ]);
 
         await pool.end();
