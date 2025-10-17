@@ -131,6 +131,63 @@ export default async function handler(req, res) {
       await pool.end();
     }
 
+    // Handle schedule grid requests
+    if (url.includes('grid')) {
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+
+      // Create performances table if it doesn't exist
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS performances (
+          id SERIAL PRIMARY KEY,
+          festival_id INTEGER,
+          artist_id INTEGER,
+          stage_area_id INTEGER,
+          performance_date DATE,
+          start_time TIME,
+          duration_minutes INTEGER DEFAULT 60,
+          status VARCHAR(50) DEFAULT 'scheduled',
+          notes TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      if (req.method === 'GET') {
+        const { festival_id, event_id } = req.query;
+        
+        // Get performances for the date
+        const performancesResult = await pool.query(`
+          SELECT p.*, a.name as artist_name, sa.name as stage_name
+          FROM performances p
+          LEFT JOIN artists a ON p.artist_id = a.id
+          LEFT JOIN stages_areas sa ON p.stage_area_id = sa.id
+          WHERE p.festival_id = $1
+          ORDER BY p.performance_date, p.start_time
+        `, [festival_id || event_id || 1]);
+
+        // Generate time slots (9 AM to 11 PM in 30-minute intervals)
+        const timeSlots = [];
+        for (let hour = 9; hour <= 23; hour++) {
+          for (let minute = 0; minute < 60; minute += 30) {
+            const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            timeSlots.push(timeStr);
+          }
+        }
+
+        await pool.end();
+        
+        return res.status(200).json({
+          time_slots: timeSlots,
+          performances: performancesResult.rows
+        });
+      }
+
+      await pool.end();
+    }
+
     // Default schedule behavior (non-performance)
     if (req.method === 'GET') {
       return res.status(200).json([]);

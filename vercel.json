@@ -23,6 +23,10 @@
       "dest": "/api/schedule"
     },
     {
+      "src": "/api/schedule/grid/(.*)",
+      "dest": "/api/schedule"
+    },
+    {
       "src": "/api/budget",
       "dest": "/api/schedule"
     },
