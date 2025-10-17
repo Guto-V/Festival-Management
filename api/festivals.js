@@ -23,6 +23,38 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       
       if (id) {
+        // Check if requesting stats for this festival
+        if (url.includes('/stats')) {
+          // Get festival statistics
+          const [
+            artistsResult,
+            performancesResult,
+            venuesResult,
+            volunteersResult
+          ] = await Promise.all([
+            pool.query('SELECT COUNT(*) as count FROM artists WHERE festival_id = $1', [id]),
+            pool.query('SELECT COUNT(*) as count FROM performances WHERE festival_id = $1', [id]),
+            pool.query('SELECT COUNT(*) as count FROM stages_areas WHERE event_id = $1', [id]),
+            pool.query('SELECT COUNT(*) as count FROM volunteer_applications WHERE festival_id = $1', [id])
+          ]);
+
+          await pool.end();
+
+          const stats = {
+            festival_id: parseInt(id),
+            venues: parseInt(venuesResult.rows[0].count),
+            performances: parseInt(performancesResult.rows[0].count),
+            artists: parseInt(artistsResult.rows[0].count),
+            volunteers: parseInt(volunteersResult.rows[0].count),
+            vendors: 0, // TODO: Add vendors count when vendors table exists
+            total_income: 0,
+            total_expenses: 0,
+            net_profit: 0
+          };
+
+          return res.status(200).json(stats);
+        }
+
         // Get single festival by ID
         const result = await pool.query(`
           SELECT id, name, description, start_date, end_date, location, 

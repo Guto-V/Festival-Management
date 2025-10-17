@@ -3,6 +3,10 @@
   "outputDirectory": "frontend/build",
   "routes": [
     {
+      "src": "/api/festivals/([0-9]+)/stats",
+      "dest": "/api/festivals?id=$1"
+    },
+    {
       "src": "/api/festivals/([0-9]+)",
       "dest": "/api/festivals?id=$1"
     },
@@ -35,8 +39,20 @@
       "dest": "/api/vendors"
     },
     {
+      "src": "/api/contracts/templates/([0-9]+)",
+      "dest": "/api/contracts"
+    },
+    {
       "src": "/api/contracts/templates",
-      "dest": "/api/contracts/templates"
+      "dest": "/api/contracts"
+    },
+    {
+      "src": "/api/volunteer-applications/([0-9]+)/(approve|decline)",
+      "dest": "/api/volunteer-applications"
+    },
+    {
+      "src": "/api/volunteer-applications/([0-9]+)",
+      "dest": "/api/volunteer-applications"
     },
     {
       "src": "/api/(.*)",
