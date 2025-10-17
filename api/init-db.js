@@ -175,6 +175,21 @@ export default async function handler(req, res) {
       )
     `);
 
+    // Create stages_areas table with exact local schema
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS stages_areas (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        type VARCHAR(100) NOT NULL CHECK(type IN ('stage', 'area')),
+        setup_time INTEGER DEFAULT 0,
+        breakdown_time INTEGER DEFAULT 0,
+        sort_order INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Insert sample data if tables are empty
     const userCount = await pool.query('SELECT COUNT(*) FROM users');
     if (parseInt(userCount.rows[0].count) === 0) {
@@ -205,6 +220,24 @@ export default async function handler(req, res) {
         `);
       } catch (artistError) {
         console.log('Artist insert error (non-critical):', artistError.message);
+      }
+    }
+
+    // Insert sample stages data if empty
+    const stagesCount = await pool.query('SELECT COUNT(*) FROM stages_areas');
+    if (parseInt(stagesCount.rows[0].count) === 0) {
+      try {
+        await pool.query(`
+          INSERT INTO stages_areas (event_id, name, type, sort_order, setup_time, breakdown_time, is_active) VALUES
+          (1, 'Main Stage', 'stage', 0, 30, 15, true),
+          (1, 'Acoustic Stage', 'stage', 1, 15, 10, true),
+          (1, 'Food Court', 'area', 2, 0, 0, true),
+          (1, 'VIP Area', 'area', 3, 60, 30, true),
+          (2, 'Gallery Stage', 'stage', 0, 20, 15, true),
+          (2, 'Workshop Area', 'area', 1, 10, 5, true)
+        `);
+      } catch (stagesError) {
+        console.log('Stages insert error (non-critical):', stagesError.message);
       }
     }
 

@@ -20,17 +20,18 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { event_id } = req.query;
       
-      // Create table if it doesn't exist
+      // Create table if it doesn't exist - match local schema exactly
       await pool.query(`
         CREATE TABLE IF NOT EXISTS stages_areas (
           id SERIAL PRIMARY KEY,
-          event_id INTEGER,
+          event_id INTEGER NOT NULL,
           name VARCHAR(255) NOT NULL,
-          capacity INTEGER,
-          type VARCHAR(100),
-          description TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          type VARCHAR(100) NOT NULL CHECK(type IN ('stage', 'area')),
+          setup_time INTEGER DEFAULT 0,
+          breakdown_time INTEGER DEFAULT 0,
+          sort_order INTEGER DEFAULT 0,
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
 
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
         params.push(event_id);
       }
       
-      query += ' ORDER BY created_at DESC';
+      query += ' ORDER BY sort_order ASC, id ASC';
       
       const result = await pool.query(query, params);
       await pool.end();
@@ -51,27 +52,13 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { event_id, name, capacity, type, location, description } = req.body;
-      
-      // Create table if it doesn't exist
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS stages_areas (
-          id SERIAL PRIMARY KEY,
-          event_id INTEGER,
-          name VARCHAR(255) NOT NULL,
-          capacity INTEGER,
-          type VARCHAR(100),
-          description TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
+      const { event_id, name, type, setup_time, breakdown_time, sort_order } = req.body;
 
       const result = await pool.query(`
-        INSERT INTO stages_areas (event_id, name, capacity, type, description)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO stages_areas (event_id, name, type, setup_time, breakdown_time, sort_order, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, true)
         RETURNING *
-      `, [event_id || 1, name, capacity, type, description]);
+      `, [event_id || 1, name, type || 'stage', setup_time || 0, breakdown_time || 0, sort_order || 0]);
 
       await pool.end();
       return res.status(201).json(result.rows[0]);
@@ -79,15 +66,40 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       const { id } = req.query;
-      const { event_id, name, capacity, type, location, description } = req.body;
+      
+      // Check if this is a reorder request (batch update)
+      if (req.body.stages && Array.isArray(req.body.stages)) {
+        // Handle batch reorder
+        try {
+          for (const stage of req.body.stages) {
+            await pool.query(`
+              UPDATE stages_areas SET sort_order = $1 WHERE id = $2
+            `, [stage.sort_order, stage.id]);
+          }
+          
+          // Return updated stages in correct order
+          const result = await pool.query(`
+            SELECT * FROM stages_areas WHERE event_id = $1 ORDER BY sort_order ASC, id ASC
+          `, [req.body.stages[0].event_id || 1]);
+          
+          await pool.end();
+          return res.status(200).json(result.rows);
+        } catch (error) {
+          await pool.end();
+          throw error;
+        }
+      }
+      
+      // Handle single stage update
+      const { event_id, name, type, setup_time, breakdown_time, sort_order, is_active } = req.body;
 
       const result = await pool.query(`
         UPDATE stages_areas SET
-          event_id = $1, name = $2, capacity = $3, type = $4,
-          description = $5, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $6
+          event_id = $1, name = $2, type = $3, setup_time = $4,
+          breakdown_time = $5, sort_order = $6, is_active = $7
+        WHERE id = $8
         RETURNING *
-      `, [event_id, name, capacity, type, description, id]);
+      `, [event_id, name, type, setup_time || 0, breakdown_time || 0, sort_order || 0, is_active !== false, id]);
 
       await pool.end();
       

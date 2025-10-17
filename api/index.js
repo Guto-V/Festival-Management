@@ -122,6 +122,53 @@ export default async function handler(req, res) {
       }
     }
 
+    // Stages endpoints
+    if (url.includes('/stages-areas')) {
+      const { id } = query;
+
+      if (req.method === 'GET') {
+        const { event_id } = query;
+        
+        let stagesQuery = 'SELECT * FROM stages_areas';
+        const params = [];
+        
+        if (event_id) {
+          stagesQuery += ' WHERE event_id = $1';
+          params.push(event_id);
+        }
+        
+        stagesQuery += ' ORDER BY sort_order ASC, id ASC';
+        
+        const result = await pool.query(stagesQuery, params);
+        await pool.end();
+        
+        return res.status(200).json(result.rows);
+      }
+
+      if (req.method === 'PUT') {
+        // Check if this is a reorder request (batch update)
+        if (req.body.stages && Array.isArray(req.body.stages)) {
+          try {
+            for (const stage of req.body.stages) {
+              await pool.query(`
+                UPDATE stages_areas SET sort_order = $1 WHERE id = $2
+              `, [stage.sort_order, stage.id]);
+            }
+            
+            const result = await pool.query(`
+              SELECT * FROM stages_areas WHERE event_id = $1 ORDER BY sort_order ASC, id ASC
+            `, [req.body.stages[0].event_id || 1]);
+            
+            await pool.end();
+            return res.status(200).json(result.rows);
+          } catch (error) {
+            await pool.end();
+            throw error;
+          }
+        }
+      }
+    }
+
     // Artists endpoints
     if (url.includes('/artists')) {
       const { id, festival_id } = query;
@@ -190,10 +237,19 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Consolidated API error:', error);
+    
+    // Ensure database connection is closed
+    try {
+      await pool.end();
+    } catch (poolError) {
+      console.error('Pool cleanup error:', poolError);
+    }
+    
     return res.status(500).json({ 
       success: false,
       message: 'API request failed',
-      error: error.message 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
