@@ -3,6 +3,14 @@
   "outputDirectory": "frontend/build",
   "routes": [
     {
+      "src": "/api/system-stats",
+      "dest": "/api/festivals"
+    },
+    {
+      "src": "/api/auth/profile",
+      "dest": "/api/auth/login"
+    },
+    {
       "src": "/api/festivals/([0-9]+)/stats",
       "dest": "/api/festivals?id=$1"
     },
