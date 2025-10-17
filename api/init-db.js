@@ -62,6 +62,32 @@ export default async function handler(req, res) {
       console.log('Column alter warning (non-critical):', alterError.message);
     }
 
+    // Recreate performances table with correct schema
+    try {
+      await pool.query('DROP TABLE IF EXISTS performances CASCADE');
+      await pool.query(`
+        CREATE TABLE performances (
+          id SERIAL PRIMARY KEY,
+          festival_id INTEGER NOT NULL,
+          artist_id INTEGER NOT NULL,
+          stage_area_id INTEGER NOT NULL,
+          performance_date DATE NOT NULL,
+          start_time TIME NOT NULL,
+          duration_minutes INTEGER NOT NULL,
+          changeover_time_after INTEGER DEFAULT 15,
+          soundcheck_time TIME,
+          soundcheck_duration INTEGER DEFAULT 30,
+          notes TEXT,
+          status VARCHAR(50) DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'confirmed', 'cancelled', 'completed')),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log('Performances table recreated with correct schema');
+    } catch (performanceError) {
+      console.log('Performance table creation warning:', performanceError.message);
+    }
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS artists (
         id SERIAL PRIMARY KEY,

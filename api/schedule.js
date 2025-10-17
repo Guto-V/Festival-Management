@@ -35,14 +35,17 @@ export default async function handler(req, res) {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS performances (
           id SERIAL PRIMARY KEY,
-          festival_id INTEGER,
-          artist_id INTEGER,
-          stage_area_id INTEGER,
-          performance_date DATE,
-          start_time TIME,
-          duration_minutes INTEGER DEFAULT 60,
-          status VARCHAR(50) DEFAULT 'scheduled',
+          festival_id INTEGER NOT NULL,
+          artist_id INTEGER NOT NULL,
+          stage_area_id INTEGER NOT NULL,
+          performance_date DATE NOT NULL,
+          start_time TIME NOT NULL,
+          duration_minutes INTEGER NOT NULL,
+          changeover_time_after INTEGER DEFAULT 15,
+          soundcheck_time TIME,
+          soundcheck_duration INTEGER DEFAULT 30,
           notes TEXT,
+          status VARCHAR(50) DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'confirmed', 'cancelled', 'completed')),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -67,19 +70,30 @@ export default async function handler(req, res) {
       if (req.method === 'POST') {
         const { 
           festival_id, artist_id, stage_area_id, performance_date, 
-          start_time, duration_minutes, setup_time, status, notes 
+          start_time, duration_minutes, changeover_time_after, 
+          soundcheck_time, soundcheck_duration, status, notes 
         } = req.body;
+
+        // Ensure required fields are provided
+        if (!festival_id || !artist_id || !stage_area_id || !performance_date || !start_time || !duration_minutes) {
+          await pool.end();
+          return res.status(400).json({ 
+            error: 'Missing required fields: festival_id, artist_id, stage_area_id, performance_date, start_time, duration_minutes' 
+          });
+        }
 
         const result = await pool.query(`
           INSERT INTO performances (
             festival_id, artist_id, stage_area_id, performance_date,
-            start_time, duration_minutes, status, notes
+            start_time, duration_minutes, changeover_time_after,
+            soundcheck_time, soundcheck_duration, status, notes
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           RETURNING *
         `, [
-          festival_id || 1, artist_id, stage_area_id, performance_date,
-          start_time, duration_minutes || 60, status || 'scheduled', notes
+          festival_id, artist_id, stage_area_id, performance_date,
+          start_time, duration_minutes, changeover_time_after || 15,
+          soundcheck_time, soundcheck_duration || 30, status || 'scheduled', notes
         ]);
 
         await pool.end();
@@ -93,20 +107,68 @@ export default async function handler(req, res) {
         
         const { 
           festival_id, artist_id, stage_area_id, performance_date,
-          start_time, duration_minutes, setup_time, status, notes 
+          start_time, duration_minutes, changeover_time_after,
+          soundcheck_time, soundcheck_duration, status, notes 
         } = req.body;
 
+        // Build dynamic update query to only update provided fields
+        const updateFields = [];
+        const values = [];
+        let paramCount = 1;
+
+        if (festival_id !== undefined) {
+          updateFields.push(`festival_id = $${paramCount++}`);
+          values.push(festival_id);
+        }
+        if (artist_id !== undefined) {
+          updateFields.push(`artist_id = $${paramCount++}`);
+          values.push(artist_id);
+        }
+        if (stage_area_id !== undefined) {
+          updateFields.push(`stage_area_id = $${paramCount++}`);
+          values.push(stage_area_id);
+        }
+        if (performance_date !== undefined) {
+          updateFields.push(`performance_date = $${paramCount++}`);
+          values.push(performance_date);
+        }
+        if (start_time !== undefined) {
+          updateFields.push(`start_time = $${paramCount++}`);
+          values.push(start_time);
+        }
+        if (duration_minutes !== undefined) {
+          updateFields.push(`duration_minutes = $${paramCount++}`);
+          values.push(duration_minutes);
+        }
+        if (changeover_time_after !== undefined) {
+          updateFields.push(`changeover_time_after = $${paramCount++}`);
+          values.push(changeover_time_after);
+        }
+        if (soundcheck_time !== undefined) {
+          updateFields.push(`soundcheck_time = $${paramCount++}`);
+          values.push(soundcheck_time);
+        }
+        if (soundcheck_duration !== undefined) {
+          updateFields.push(`soundcheck_duration = $${paramCount++}`);
+          values.push(soundcheck_duration);
+        }
+        if (status !== undefined) {
+          updateFields.push(`status = $${paramCount++}`);
+          values.push(status);
+        }
+        if (notes !== undefined) {
+          updateFields.push(`notes = $${paramCount++}`);
+          values.push(notes);
+        }
+
+        updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+        values.push(id);
+
         const result = await pool.query(`
-          UPDATE performances SET
-            festival_id = $1, artist_id = $2, stage_area_id = $3,
-            performance_date = $4, start_time = $5, duration_minutes = $6,
-            status = $7, notes = $8, updated_at = CURRENT_TIMESTAMP
-          WHERE id = $9
+          UPDATE performances SET ${updateFields.join(', ')}
+          WHERE id = $${paramCount}
           RETURNING *
-        `, [
-          festival_id, artist_id, stage_area_id, performance_date,
-          start_time, duration_minutes, status, notes, id
-        ]);
+        `, values);
 
         await pool.end();
         
@@ -142,14 +204,17 @@ export default async function handler(req, res) {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS performances (
           id SERIAL PRIMARY KEY,
-          festival_id INTEGER,
-          artist_id INTEGER,
-          stage_area_id INTEGER,
-          performance_date DATE,
-          start_time TIME,
-          duration_minutes INTEGER DEFAULT 60,
-          status VARCHAR(50) DEFAULT 'scheduled',
+          festival_id INTEGER NOT NULL,
+          artist_id INTEGER NOT NULL,
+          stage_area_id INTEGER NOT NULL,
+          performance_date DATE NOT NULL,
+          start_time TIME NOT NULL,
+          duration_minutes INTEGER NOT NULL,
+          changeover_time_after INTEGER DEFAULT 15,
+          soundcheck_time TIME,
+          soundcheck_duration INTEGER DEFAULT 30,
           notes TEXT,
+          status VARCHAR(50) DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'confirmed', 'cancelled', 'completed')),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -160,7 +225,8 @@ export default async function handler(req, res) {
         
         // Get performances for the date
         const performancesResult = await pool.query(`
-          SELECT p.*, a.name as artist_name, sa.name as stage_name
+          SELECT p.*, a.name as artist_name, sa.name as stage_name,
+                 p.changeover_time_after as setup_time
           FROM performances p
           LEFT JOIN artists a ON p.artist_id = a.id
           LEFT JOIN stages_areas sa ON p.stage_area_id = sa.id
