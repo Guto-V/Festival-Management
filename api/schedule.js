@@ -225,8 +225,21 @@ export default async function handler(req, res) {
         
         // Get performances for the date
         const performancesResult = await pool.query(`
-          SELECT p.*, a.name as artist_name, sa.name as stage_name,
-                 p.changeover_time_after as setup_time
+          SELECT 
+            p.id,
+            p.festival_id,
+            p.artist_id,
+            p.stage_area_id,
+            TO_CHAR(p.performance_date, 'YYYY-MM-DD') as performance_date,
+            TO_CHAR(p.start_time, 'HH24:MI') as start_time,
+            p.duration_minutes,
+            p.changeover_time_after as setup_time,
+            TO_CHAR(p.soundcheck_time, 'HH24:MI') as soundcheck_time,
+            p.soundcheck_duration,
+            p.status,
+            p.notes,
+            a.name as artist_name,
+            sa.name as stage_name
           FROM performances p
           LEFT JOIN artists a ON p.artist_id = a.id
           LEFT JOIN stages_areas sa ON p.stage_area_id = sa.id
@@ -271,11 +284,11 @@ export default async function handler(req, res) {
             p.festival_id,
             p.artist_id,
             p.stage_area_id,
-            p.performance_date,
-            p.start_time,
+            TO_CHAR(p.performance_date, 'YYYY-MM-DD') as performance_date,
+            TO_CHAR(p.start_time, 'HH24:MI') as start_time,
             p.duration_minutes,
             p.changeover_time_after as setup_time,
-            p.soundcheck_time,
+            TO_CHAR(p.soundcheck_time, 'HH24:MI') as soundcheck_time,
             p.soundcheck_duration,
             p.status,
             p.notes,
@@ -289,6 +302,12 @@ export default async function handler(req, res) {
         `, [festival_id || event_id || 1]);
 
         await pool.end();
+        
+        console.log(`Schedule API: festival_id=${festival_id || event_id}, found ${result.rows.length} performances`);
+        if (result.rows.length > 0) {
+          console.log('Sample performance:', result.rows[0]);
+        }
+        
         return res.status(200).json(result.rows);
       } catch (error) {
         await pool.end();

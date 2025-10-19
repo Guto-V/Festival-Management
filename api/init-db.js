@@ -204,8 +204,8 @@ export default async function handler(req, res) {
     if (parseInt(festivalCount.rows[0].count) === 0) {
       await pool.query(`
         INSERT INTO festivals (name, description, start_date, end_date, location, status) VALUES
-        ('Summer Music Festival 2024', 'Annual summer music celebration', '2024-07-15', '2024-07-17', 'Central Park', 'planning'),
-        ('Fall Arts Festival', 'Community arts and culture festival', '2024-09-10', '2024-09-12', 'Downtown Plaza', 'confirmed')
+        ('Summer Music Festival 2025', 'Annual summer music celebration', '2025-07-15', '2025-07-17', 'Central Park', 'planning'),
+        ('Fall Arts Festival 2025', 'Community arts and culture festival', '2025-09-10', '2025-09-12', 'Downtown Plaza', 'confirmed')
       `);
     }
 
@@ -255,9 +255,10 @@ export default async function handler(req, res) {
               festival_id, artist_id, stage_area_id, performance_date,
               start_time, duration_minutes, changeover_time_after, status
             ) VALUES
-            (1, $1, $2, '2024-07-15', '18:00', 60, 15, 'scheduled'),
-            (1, $3, $2, '2024-07-15', '20:00', 75, 15, 'scheduled'),
-            (1, $4, $5, '2024-07-16', '19:30', 90, 20, 'confirmed')
+            (1, $1, $2, '2025-07-15', '18:00', 60, 15, 'scheduled'),
+            (1, $3, $2, '2025-07-15', '20:00', 75, 15, 'scheduled'),
+            (1, $4, $5, '2025-07-16', '19:30', 90, 20, 'confirmed'),
+            (1, $1, $5, '2025-07-17', '16:00', 45, 10, 'scheduled')
           `, [
             artistsResult.rows[0].id,
             stagesResult.rows[0].id,

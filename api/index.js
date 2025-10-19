@@ -141,7 +141,20 @@ export default async function handler(req, res) {
           
           // Get performances for this artist
           const performancesResult = await pool.query(`
-            SELECT p.*, sa.name as stage_name
+            SELECT 
+              p.id,
+              p.festival_id,
+              p.artist_id,
+              p.stage_area_id,
+              TO_CHAR(p.performance_date, 'YYYY-MM-DD') as performance_date,
+              TO_CHAR(p.start_time, 'HH24:MI') as start_time,
+              p.duration_minutes,
+              p.changeover_time_after as setup_time,
+              TO_CHAR(p.soundcheck_time, 'HH24:MI') as soundcheck_time,
+              p.soundcheck_duration,
+              p.status,
+              p.notes,
+              sa.name as stage_name
             FROM performances p
             LEFT JOIN stages_areas sa ON p.stage_area_id = sa.id
             WHERE p.artist_id = $1
