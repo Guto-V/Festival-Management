@@ -241,6 +241,36 @@ export default async function handler(req, res) {
       }
     }
 
+    // Insert sample performance data if empty
+    const performancesCount = await pool.query('SELECT COUNT(*) FROM performances');
+    if (parseInt(performancesCount.rows[0].count) === 0) {
+      try {
+        // Get the artist and stage IDs for sample data
+        const artistsResult = await pool.query('SELECT id FROM artists LIMIT 3');
+        const stagesResult = await pool.query('SELECT id FROM stages_areas LIMIT 2');
+        
+        if (artistsResult.rows.length > 0 && stagesResult.rows.length > 0) {
+          await pool.query(`
+            INSERT INTO performances (
+              festival_id, artist_id, stage_area_id, performance_date,
+              start_time, duration_minutes, changeover_time_after, status
+            ) VALUES
+            (1, $1, $2, '2024-07-15', '18:00', 60, 15, 'scheduled'),
+            (1, $3, $2, '2024-07-15', '20:00', 75, 15, 'scheduled'),
+            (1, $4, $5, '2024-07-16', '19:30', 90, 20, 'confirmed')
+          `, [
+            artistsResult.rows[0].id,
+            stagesResult.rows[0].id,
+            artistsResult.rows[1]?.id || artistsResult.rows[0].id,
+            artistsResult.rows[2]?.id || artistsResult.rows[0].id,
+            stagesResult.rows[1]?.id || stagesResult.rows[0].id
+          ]);
+        }
+      } catch (performancesError) {
+        console.log('Performances insert error (non-critical):', performancesError.message);
+      }
+    }
+
     await pool.end();
 
     return res.status(200).json({

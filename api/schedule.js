@@ -254,9 +254,46 @@ export default async function handler(req, res) {
       await pool.end();
     }
 
-    // Default schedule behavior (non-performance)
+    // Handle main schedule requests (for Timetable page)
     if (req.method === 'GET') {
-      return res.status(200).json([]);
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+
+      const { festival_id, event_id } = req.query;
+      
+      try {
+        // Get all performances with artist and stage names
+        const result = await pool.query(`
+          SELECT 
+            p.id,
+            p.festival_id,
+            p.artist_id,
+            p.stage_area_id,
+            p.performance_date,
+            p.start_time,
+            p.duration_minutes,
+            p.changeover_time_after as setup_time,
+            p.soundcheck_time,
+            p.soundcheck_duration,
+            p.status,
+            p.notes,
+            a.name as artist_name,
+            sa.name as stage_area_name
+          FROM performances p
+          LEFT JOIN artists a ON p.artist_id = a.id
+          LEFT JOIN stages_areas sa ON p.stage_area_id = sa.id
+          WHERE p.festival_id = $1
+          ORDER BY p.performance_date, p.start_time
+        `, [festival_id || event_id || 1]);
+
+        await pool.end();
+        return res.status(200).json(result.rows);
+      } catch (error) {
+        await pool.end();
+        throw error;
+      }
     }
 
     if (req.method === 'POST') {

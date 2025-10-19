@@ -51,6 +51,10 @@
       "dest": "/api/schedule"
     },
     {
+      "src": "/api/schedule",
+      "dest": "/api/schedule"
+    },
+    {
       "src": "/api/budget",
       "dest": "/api/schedule"
     },

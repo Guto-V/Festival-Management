@@ -129,18 +129,31 @@ export default async function handler(req, res) {
 
       if (req.method === 'GET') {
         if (id) {
-          // Single artist
-          const result = await pool.query(`
+          // Single artist with performances
+          const artistResult = await pool.query(`
             SELECT * FROM artists WHERE id = $1
+          `, [id]);
+          
+          if (artistResult.rows.length === 0) {
+            await pool.end();
+            return res.status(404).json({ error: 'Artist not found' });
+          }
+          
+          // Get performances for this artist
+          const performancesResult = await pool.query(`
+            SELECT p.*, sa.name as stage_name
+            FROM performances p
+            LEFT JOIN stages_areas sa ON p.stage_area_id = sa.id
+            WHERE p.artist_id = $1
+            ORDER BY p.performance_date, p.start_time
           `, [id]);
           
           await pool.end();
           
-          if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Artist not found' });
-          }
+          const artist = artistResult.rows[0];
+          artist.performances = performancesResult.rows;
           
-          return res.status(200).json(result.rows[0]);
+          return res.status(200).json(artist);
         }
 
         // All artists (optionally filtered by festival)
